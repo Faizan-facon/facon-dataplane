@@ -27,6 +27,18 @@ export const routes: Routes = [
         path: 'upgrade',
         loadComponent: () => import('./pages/upgrade/upgrade.component').then((m) => m.UpgradeComponent),
       },
+      {
+        path: 'admin/users',
+        loadComponent: () => import('./pages/admin/users/users.component').then((m) => m.AdminUsersComponent),
+      },
+      {
+        path: 'admin/users/:sub',
+        loadComponent: () => import('./pages/admin/users/user-detail.component').then((m) => m.AdminUserDetailComponent),
+      },
+      {
+        path: 'admin/roles',
+        loadComponent: () => import('./pages/admin/roles/roles.component').then((m) => m.AdminRolesComponent),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

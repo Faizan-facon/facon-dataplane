@@ -28,6 +28,13 @@
       @if (!fg.hasFeature('analytics:view')) {
         <a routerLink="/upgrade" class="upgrade">⭐ Upgrade</a>
       }
+
+      <!-- Admin section — gated on users.read permission -->
+      @if (perm.has('users.read')) {
+        <div class="sidebar-section">⚙️ Admin</div>
+        <a routerLink="/admin/users" routerLinkActive="active">👥 Users</a>
+        <a routerLink="/admin/roles" routerLinkActive="active">🔑 Roles</a>
+      }
     </nav>
 
     <!-- Content -->

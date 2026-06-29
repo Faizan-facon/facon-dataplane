@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { KeycloakService } from 'keycloak-angular';
 import { TenantService } from '../../core/services/tenant.service';
 import { FeatureGateService } from '../../core/services/feature-gate.service';
+import { PermissionService } from '../../core/services/permission.service';
 
 @Component({
   standalone: true,
@@ -14,21 +15,17 @@ import { FeatureGateService } from '../../core/services/feature-gate.service';
 })
 export class ShellComponent implements OnInit {
   private keycloak = inject(KeycloakService);
-  private router = inject(Router);
   tenant = inject(TenantService);
   fg = inject(FeatureGateService);
+  perm = inject(PermissionService);
 
   sidebarOpen = false;
 
   async ngOnInit(): Promise<void> {
     const ctx = await this.tenant.load();
-    if (!ctx) {
-      console.warn('Tenant resolution failed');
-      return;
-    }
-    // Derive feature set from tenant's actual plan key
-    const planKey = ctx.planKey;
-    this.fg.setPlan(planKey);
+    if (!ctx) { console.warn('Tenant resolution failed'); return; }
+    this.fg.setPlan(ctx.planKey);
+    await this.perm.load();
   }
 
   get username(): string {

@@ -69,7 +69,77 @@ export class ApiService {
   getMyProfile(): Observable<MyProfileResponse> {
     return this.http.get<MyProfileResponse>(`${API_BASE}/me`);
   }
+
+  // ── Users ─────────────────────────────────────────────────────────────
+
+  getMembers(): Observable<MemberResponse[]> {
+    return this.http.get<MemberResponse[]>(`${API_BASE}/users`);
+  }
+
+  getMember(sub: string): Observable<MemberDetailResponse> {
+    return this.http.get<MemberDetailResponse>(`${API_BASE}/users/${sub}`);
+  }
+
+  inviteUser(req: InviteRequest): Observable<InvitationResponse> {
+    return this.http.post<InvitationResponse>(`${API_BASE}/users/invite`, req);
+  }
+
+  updateRoles(sub: string, roleIds: string[]): Observable<void> {
+    return this.http.put<void>(`${API_BASE}/users/${sub}/roles`, { roleIds });
+  }
+
+  grantPermission(sub: string, req: PermissionOverrideRequest): Observable<void> {
+    return this.http.post<void>(`${API_BASE}/users/${sub}/permissions`, req);
+  }
+
+  revokePermission(sub: string, code: string): Observable<void> {
+    return this.http.delete<void>(`${API_BASE}/users/${sub}/permissions/${code}`);
+  }
+
+  removeMember(sub: string): Observable<void> {
+    return this.http.delete<void>(`${API_BASE}/users/${sub}`);
+  }
+
+  // ── Roles ─────────────────────────────────────────────────────────────
+
+  getRoles(): Observable<RoleResponse[]> {
+    return this.http.get<RoleResponse[]>(`${API_BASE}/roles`);
+  }
+
+  getRole(id: string): Observable<RoleDetailResponse> {
+    return this.http.get<RoleDetailResponse>(`${API_BASE}/roles/${id}`);
+  }
+
+  createRole(req: CreateRoleRequest): Observable<{ id: string; name: string }> {
+    return this.http.post<{ id: string; name: string }>(`${API_BASE}/roles`, req);
+  }
+
+  updateRole(id: string, req: UpdateRoleRequest): Observable<void> {
+    return this.http.put<void>(`${API_BASE}/roles/${id}`, req);
+  }
+
+  deleteRole(id: string): Observable<void> {
+    return this.http.delete<void>(`${API_BASE}/roles/${id}`);
+  }
 }
+
+// ── User types ────────────────────────────────────────────────────────────
+
+export interface MemberResponse { sub: string; roles: RoleSummary[]; }
+export interface MemberDetailResponse { sub: string; roles: RoleSummary[]; overrides: PermissionOverride[]; }
+export interface RoleSummary { id: string; name: string; }
+export interface PermissionOverride { permission: string; effect: number; }
+export interface InviteRequest { email: string; }
+export interface InvitationResponse { token: string; tenantId: string; }
+export interface PermissionOverrideRequest { permission: string; effect: string; expiresAt?: string; }
+
+// ── Role types ────────────────────────────────────────────────────────────
+
+export interface RoleResponse { id: string; name: string; description?: string; isSystem: boolean; isDefault: boolean; priority: number; createdAt: string; }
+export interface RoleDetailResponse { role: RoleResponse; permissions: RolePermissionResponse[]; }
+export interface RolePermissionResponse { code: string; displayName: string; effect: number; }
+export interface CreateRoleRequest { name: string; description?: string; isDefault: boolean; priority: number; permissions: { code: string; effect: string }[]; }
+export interface UpdateRoleRequest { name: string; description?: string; permissions?: { code: string; effect: string }[]; }
 
 export interface MyProfileResponse {
   isOnboarded: boolean;

@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FaconDataplane.Api/FaconDataplane.Api.csproj" />
+  </Folder>
+</Solution>

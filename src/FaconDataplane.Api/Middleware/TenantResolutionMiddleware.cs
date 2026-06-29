@@ -60,6 +60,7 @@ public sealed class TenantResolutionMiddleware
         context.Items["OrganizationId"] = tenantCtx.OrganizationId;
         context.Items["TenantStatus"] = tenantCtx.TenantStatus;
         context.Items["SubscriptionStatus"] = tenantCtx.SubscriptionStatus;
+        context.Items["PlanKey"] = tenantCtx.PlanKey;
 
         await _next(context);
     }
@@ -107,7 +108,8 @@ public sealed class TenantResolutionMiddleware
 
         return new TenantContext(tenant.Id, tenant.Slug, tenant.Name,
             profile.OrganizationId, profile.OrganizationName,
-            tenant.Status, tenant.SubscriptionStatus ?? "Unknown");
+            tenant.Status, tenant.SubscriptionStatus ?? "Unknown",
+            tenant.PlanKey ?? "Trial");
     }
 }
 
@@ -118,7 +120,8 @@ public sealed record TenantContext(
     Guid OrganizationId,
     string OrganizationName,
     string TenantStatus,
-    string SubscriptionStatus);
+    string SubscriptionStatus,
+    string PlanKey);
 
 public sealed record MyProfileResponse(
     bool IsOnboarded,
@@ -132,4 +135,5 @@ public sealed record TenantSummary(
     string Name,
     string Slug,
     string Status,
-    string? SubscriptionStatus);
+    string? SubscriptionStatus,
+    string? PlanKey);

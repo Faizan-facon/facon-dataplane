@@ -20,7 +20,7 @@ import { TenantService } from '../../core/services/tenant.service';
       <div class="card">
         <h3>Tenant</h3>
         <div class="value">{{ tenant.context()?.tenantName ?? '...' }}</div>
-        <div class="label">{{ tenant.context()?.tenantStatus }} · {{ tenant.context()?.subscriptionStatus }}</div>
+        <div class="label">{{ tenant.context()?.tenantStatus }} · {{ tenant.context()?.subscriptionStatus }} · {{ tenant.context()?.planKey }}</div>
       </div>
       <div class="card">
         <h3>Organization</h3>

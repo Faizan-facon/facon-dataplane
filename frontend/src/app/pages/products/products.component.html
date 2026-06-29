@@ -1,0 +1,60 @@
+<div class="page-header">
+  <h2>Products</h2>
+</div>
+
+<!-- Error toast -->
+@if (error()) {
+  <div class="toast toast-error">{{ error() }}</div>
+}
+
+<!-- Create form -->
+<div class="create-form">
+  <div class="form-group">
+    <label>Name</label>
+    <input [(ngModel)]="newName" placeholder="Product name" />
+  </div>
+  <div class="form-group">
+    <label>Price</label>
+    <input type="number" [(ngModel)]="newPrice" placeholder="0.00" step="0.01" />
+  </div>
+  <div class="form-group">
+    <label>Size (bytes)</label>
+    <input type="number" [(ngModel)]="newSize" placeholder="4096" />
+  </div>
+  <button class="btn btn-primary" (click)="createProduct()" [disabled]="creating() || !newName">
+    {{ creating() ? 'Creating...' : 'Create' }}
+  </button>
+</div>
+
+<!-- Loading -->
+@if (loading()) {
+  <p>Loading products...</p>
+}
+
+<!-- Products table -->
+@if (!loading()) {
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Price</th>
+        <th>Created</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (p of products(); track p.id) {
+        <tr>
+          <td>{{ p.name }}</td>
+          <td class="price">{{ p.price | currency }}</td>
+          <td>{{ p.createdAt | date:'short' }}</td>
+          <td>
+            <button class="btn btn-danger" (click)="deleteProduct(p.id)">Delete</button>
+          </td>
+        </tr>
+      } @empty {
+        <tr><td colspan="4">No products yet. Create one above.</td></tr>
+      }
+    </tbody>
+  </table>
+}

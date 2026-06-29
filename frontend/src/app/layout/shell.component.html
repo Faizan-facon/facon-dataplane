@@ -1,0 +1,46 @@
+<div class="shell">
+  <!-- Header -->
+  <header class="header">
+    <button class="menu-btn" (click)="toggleSidebar()">☰</button>
+    <span class="brand">Facon Dataplane</span>
+    <span class="tenant-badge" [class.blocked]="isBlocked">
+      {{ tenantName }}{{ tenantStatus }}
+    </span>
+    <span class="spacer"></span>
+    <span class="user">{{ username }}</span>
+    <button class="logout-btn" (click)="logout()">Logout</button>
+  </header>
+
+  <div class="body">
+    <!-- Sidebar -->
+    <nav class="sidebar" [class.open]="sidebarOpen">
+      <a routerLink="/dashboard" routerLinkActive="active">📊 Dashboard</a>
+      <a routerLink="/products" routerLinkActive="active">📦 Products</a>
+
+      @if (fg.hasFeature('analytics:view')) {
+        <a routerLink="/analytics" routerLinkActive="active">📈 Analytics</a>
+      }
+      @if (fg.hasFeature('reports:export')) {
+        <a routerLink="/analytics" routerLinkActive="active" class="sub">↳ Export</a>
+      }
+
+      <div class="sidebar-section">Plan</div>
+      @if (!fg.hasFeature('analytics:view')) {
+        <a routerLink="/upgrade" class="upgrade">⭐ Upgrade</a>
+      }
+    </nav>
+
+    <!-- Content -->
+    <main class="content">
+      <!-- Blocked banner -->
+      @if (isBlocked) {
+        <div class="banner blocked">
+          ⚠️ Your {{ tenant.context()?.tenantStatus === 'Suspended' ? 'tenant' : 'subscription' }}
+          is {{ tenant.context()?.tenantStatus !== 'Active' ? tenant.context()?.tenantStatus : tenant.context()?.subscriptionStatus }}.
+          Some features may be unavailable.
+        </div>
+      }
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

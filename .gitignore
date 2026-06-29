@@ -22,3 +22,8 @@ appsettings.*.local.json
 ## Ignore .NET things
 *.nupkg
 packages/
+
+## Ignore Node / Angular
+node_modules/
+dist/
+.angular/

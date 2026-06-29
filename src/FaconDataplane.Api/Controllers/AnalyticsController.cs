@@ -1,3 +1,4 @@
+using Asp.Versioning;
 using FaconDataplane.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +10,8 @@ namespace FaconDataplane.Api.Controllers;
 /// (Pro plan and above) and "reports:export" on the export endpoint (Pro+).
 /// </summary>
 [ApiController]
-[Route("api/analytics")]
+[ApiVersion(1)]
+[Route("api/v{version:apiVersion}/analytics")]
 [Authorize]
 [RequireFeature("analytics:view")]
 public class AnalyticsController : ControllerBase

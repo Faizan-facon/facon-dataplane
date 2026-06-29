@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Asp.Versioning;
 using FaconDataplane.Api.Authorization;
 using FaconDataplane.Api.Extensions;
 using FaconDataplane.Api.Middleware;
@@ -19,6 +20,15 @@ builder.Services.AddControllers(o =>
         o.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
     });
 
+// ── API Versioning (URL-path: /api/v1/...) ───────────────────────────────
+builder.Services.AddApiVersioning(o =>
+{
+    o.DefaultApiVersion = new ApiVersion(1);
+    o.AssumeDefaultVersionWhenUnspecified = true;
+    o.ReportApiVersions = true;
+    o.ApiVersionReader = new UrlSegmentApiVersionReader();
+});
+
 // ── Keycloak JWT auth ────────────────────────────────────────────────────
 builder.Services.AddKeycloakAuthentication(builder.Configuration);
 
@@ -31,6 +41,7 @@ builder.Services.AddHttpClient("ControlPlane", client =>
 // ── Control Plane services ───────────────────────────────────────────────
 builder.Services.AddSingleton<ControlPlaneService>();
 builder.Services.AddSingleton<FeatureGateService>();
+builder.Services.AddSingleton<TenantMigrationService>();
 
 // ── Tenant connection pool (per-tenant DB connections) ───────────────────
 builder.Services.AddSingleton<TenantConnectionPool>();
@@ -40,7 +51,12 @@ builder.Services.AddScoped<FeatureGateFilter>();
 
 // ── Middleware (order matters) ───────────────────────────────────────────
 builder.Services.AddScoped<TenantResolutionMiddleware>();
+builder.Services.AddScoped<SubscriptionEnforcementMiddleware>();
+builder.Services.AddScoped<TenantLoggingMiddleware>();
 builder.Services.AddScoped<DbConnectionMiddleware>();
+
+// ── Memory cache (used by TenantResolutionMiddleware) ────────────────────
+builder.Services.AddMemoryCache();
 
 // ── CORS ─────────────────────────────────────────────────────────────────
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
@@ -49,11 +65,14 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 var app = builder.Build();
 
 // ── Pipeline ─────────────────────────────────────────────────────────────
+// Order: CORS → Auth → Tenant Resolution → Subscription Check → Logging → DB Connection
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseMiddleware<TenantResolutionMiddleware>();
-app.UseMiddleware<DbConnectionMiddleware>();
+app.UseMiddleware<TenantResolutionMiddleware>();       // 1. Resolve tenant from CP
+app.UseMiddleware<SubscriptionEnforcementMiddleware>(); // 2. Block suspended/cancelled/past-due
+app.UseMiddleware<TenantLoggingMiddleware>();           // 3. Enrich logs with TenantId/UserId
+app.UseMiddleware<DbConnectionMiddleware>();            // 4. Open tenant-scoped DB connection
 app.MapControllers();
 
 app.Run();

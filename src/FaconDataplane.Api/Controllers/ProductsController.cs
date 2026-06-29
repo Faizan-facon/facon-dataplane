@@ -1,4 +1,5 @@
 using System.Data.Common;
+using Asp.Versioning;
 using FaconDataplane.Api.Authorization;
 using FaconDataplane.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -7,7 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace FaconDataplane.Api.Controllers;
 
 [ApiController]
-[Route("api/products")]
+[ApiVersion(1)]
+[Route("api/v{version:apiVersion}/products")]
 [Authorize]
 [RequireFeature("products:read")] // Base feature gate for all product endpoints
 public class ProductsController : ControllerBase

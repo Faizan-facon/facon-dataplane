@@ -58,6 +58,8 @@ public sealed class TenantResolutionMiddleware
         context.Items["TenantId"] = tenantCtx!.TenantId;
         context.Items["TenantSlug"] = tenantCtx.TenantSlug;
         context.Items["OrganizationId"] = tenantCtx.OrganizationId;
+        context.Items["TenantStatus"] = tenantCtx.TenantStatus;
+        context.Items["SubscriptionStatus"] = tenantCtx.SubscriptionStatus;
 
         await _next(context);
     }
@@ -104,7 +106,8 @@ public sealed class TenantResolutionMiddleware
             "Tenant resolved: sub={Sub} tenant={TenantId} slug={Slug}", sub, tenant.Id, tenant.Slug);
 
         return new TenantContext(tenant.Id, tenant.Slug, tenant.Name,
-            profile.OrganizationId, profile.OrganizationName);
+            profile.OrganizationId, profile.OrganizationName,
+            tenant.Status, tenant.SubscriptionStatus ?? "Unknown");
     }
 }
 
@@ -113,7 +116,9 @@ public sealed record TenantContext(
     string TenantSlug,
     string TenantName,
     Guid OrganizationId,
-    string OrganizationName);
+    string OrganizationName,
+    string TenantStatus,
+    string SubscriptionStatus);
 
 public sealed record MyProfileResponse(
     bool IsOnboarded,
@@ -126,4 +131,5 @@ public sealed record TenantSummary(
     Guid Id,
     string Name,
     string Slug,
-    string Status);
+    string Status,
+    string? SubscriptionStatus);

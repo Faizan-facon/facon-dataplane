@@ -1,7 +1,6 @@
-using System.Security.Claims;
+using System.Data.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Npgsql;
 
 namespace FaconDataplane.Api.Controllers;
 
@@ -23,10 +22,9 @@ public class ProductsController : ControllerBase
         var tenantId = GetTenantId();
         var connection = GetDbConnection();
 
-        await using var cmd = new NpgsqlCommand(
-            "SELECT id, name, price, created_at FROM products WHERE tenant_id = @tid ORDER BY created_at DESC",
-            connection);
-        cmd.Parameters.AddWithValue("tid", tenantId);
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT id, name, price, created_at FROM products WHERE tenant_id = @tid ORDER BY created_at DESC";
+        cmd.AddParameter("@tid", tenantId);
 
         var products = new List<ProductResponse>();
         await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -48,11 +46,10 @@ public class ProductsController : ControllerBase
         var tenantId = GetTenantId();
         var connection = GetDbConnection();
 
-        await using var cmd = new NpgsqlCommand(
-            "SELECT id, name, price, created_at FROM products WHERE id = @id AND tenant_id = @tid",
-            connection);
-        cmd.Parameters.AddWithValue("id", id);
-        cmd.Parameters.AddWithValue("tid", tenantId);
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "SELECT id, name, price, created_at FROM products WHERE id = @id AND tenant_id = @tid";
+        cmd.AddParameter("@id", id);
+        cmd.AddParameter("@tid", tenantId);
 
         await using var reader = await cmd.ExecuteReaderAsync(ct);
         if (!await reader.ReadAsync(ct))
@@ -70,14 +67,13 @@ public class ProductsController : ControllerBase
         var connection = GetDbConnection();
 
         var id = Guid.NewGuid();
-        await using var cmd = new NpgsqlCommand(
-            "INSERT INTO products (id, tenant_id, name, price, created_at) VALUES (@id, @tid, @name, @price, @now)",
-            connection);
-        cmd.Parameters.AddWithValue("id", id);
-        cmd.Parameters.AddWithValue("tid", tenantId);
-        cmd.Parameters.AddWithValue("name", request.Name);
-        cmd.Parameters.AddWithValue("price", request.Price);
-        cmd.Parameters.AddWithValue("now", DateTime.UtcNow);
+        await using var cmd = connection.CreateCommand();
+        cmd.CommandText = "INSERT INTO products (id, tenant_id, name, price, created_at) VALUES (@id, @tid, @name, @price, @now)";
+        cmd.AddParameter("@id", id);
+        cmd.AddParameter("@tid", tenantId);
+        cmd.AddParameter("@name", request.Name);
+        cmd.AddParameter("@price", request.Price);
+        cmd.AddParameter("@now", DateTime.UtcNow);
         await cmd.ExecuteNonQueryAsync(ct);
 
         _logger.LogInformation("Product {Id} created for tenant {TenantId}", id, tenantId);
@@ -92,9 +88,23 @@ public class ProductsController : ControllerBase
         (Guid)(HttpContext.Items["TenantId"]
             ?? throw new UnauthorizedAccessException("Tenant not resolved"));
 
-    private NpgsqlConnection GetDbConnection() =>
-        (NpgsqlConnection)(HttpContext.Items["DbConnection"]
+    private DbConnection GetDbConnection() =>
+        (DbConnection)(HttpContext.Items["DbConnection"]
             ?? throw new InvalidOperationException("DB connection not available"));
+}
+
+/// <summary>
+/// Extension to add parameters to <see cref="DbCommand"/> in a provider-agnostic way.
+/// </summary>
+internal static class DbCommandExtensions
+{
+    public static void AddParameter(this DbCommand cmd, string name, object? value)
+    {
+        var param = cmd.CreateParameter();
+        param.ParameterName = name;
+        param.Value = value ?? DBNull.Value;
+        cmd.Parameters.Add(param);
+    }
 }
 
 public sealed record CreateProductRequest(string Name, decimal Price);

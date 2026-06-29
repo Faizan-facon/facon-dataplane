@@ -1,10 +1,11 @@
 using System.Collections.Concurrent;
-using Npgsql;
+using System.Data.Common;
 
 namespace FaconDataplane.Api.Services;
 
 /// <summary>
-/// Maintains one open Npgsql connection per tenant.
+/// Maintains one open <see cref="DbConnection"/> per tenant.
+/// Provider-agnostic — works with PostgreSQL (Npgsql) and SQL Server (SqlClient).
 /// Refreshes credentials transparently when the lease expires.
 /// Thread-safe — uses a semaphore to prevent duplicate credential fetches.
 /// </summary>
@@ -13,7 +14,11 @@ public sealed class TenantConnectionPool : IDisposable
     private readonly ConcurrentDictionary<Guid, PooledConnection> _connections = new();
     private readonly SemaphoreSlim _lock = new(1, 1);
 
-    public async Task<NpgsqlConnection> GetConnectionAsync(
+    /// <summary>
+    /// Gets or creates a connection for the given tenant.
+    /// Automatically refreshes if the credential lease has expired or the connection is broken.
+    /// </summary>
+    public async Task<DbConnection> GetConnectionAsync(
         Guid tenantId,
         Func<Task<DbCredential>> credentialFactory,
         CancellationToken ct)
@@ -47,7 +52,7 @@ public sealed class TenantConnectionPool : IDisposable
             }
 
             var cred = await credentialFactory();
-            var conn = new NpgsqlConnection(cred.ConnectionString);
+            var conn = DbConnectionFactory.CreateConnection(cred.Resource);
             await conn.OpenAsync(ct);
 
             _connections[tenantId] = new PooledConnection(conn, cred);
@@ -59,9 +64,11 @@ public sealed class TenantConnectionPool : IDisposable
         }
     }
 
-    public Task ReturnAsync(Guid tenantId, NpgsqlConnection connection)
+    /// <summary>
+    /// Return a connection to the pool. Connections stay open for reuse.
+    /// </summary>
+    public Task ReturnAsync(Guid tenantId, DbConnection connection)
     {
-        // Keep connection open for reuse — expiry check happens on next Get
         return Task.CompletedTask;
     }
 
@@ -73,7 +80,14 @@ public sealed class TenantConnectionPool : IDisposable
         _lock.Dispose();
     }
 
-    private sealed record PooledConnection(NpgsqlConnection Connection, DbCredential Credential);
+    private sealed record PooledConnection(DbConnection Connection, DbCredential Credential);
 }
 
-public sealed record DbCredential(string ConnectionString, DateTimeOffset ExpiresAt);
+/// <summary>
+/// Resolved credential with the full control-plane resource descriptor
+/// so the pool can rebuild connections when credentials rotate.
+/// </summary>
+public sealed record DbCredential(ResolvedResourceDescriptor Resource)
+{
+    public DateTimeOffset ExpiresAt => Resource.Lease.ExpiresAt;
+}

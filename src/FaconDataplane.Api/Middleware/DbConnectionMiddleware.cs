@@ -5,8 +5,11 @@ namespace FaconDataplane.Api.Middleware;
 
 /// <summary>
 /// Fetches per-tenant database credentials from the control plane
-/// and opens a scoped Npgsql connection. Attaches the connection
-/// to HttpContext.Items for use by controllers.
+/// and opens a scoped connection via <see cref="TenantConnectionPool"/>.
+/// Supports PostgreSQL (Npgsql) and SQL Server (SqlClient) — the engine
+/// is detected from the control plane's response.
+/// Attaches the <see cref="System.Data.Common.DbConnection"/> to
+/// HttpContext.Items["DbConnection"] for use by controllers.
 /// </summary>
 public sealed class DbConnectionMiddleware
 {
@@ -77,20 +80,11 @@ public sealed class DbConnectionMiddleware
         if (resource is null)
             throw new InvalidOperationException("Credential fetch returned null");
 
-        var connString = BuildConnectionString(resource);
         _logger.LogInformation(
-            "Fetched DB cred for tenant {TenantId}, expires {Expires}",
-            tenantId, resource.Lease.ExpiresAt);
+            "Fetched {Engine} cred for tenant {TenantId}, expires {Expires}",
+            resource.Engine, tenantId, resource.Lease.ExpiresAt);
 
-        return new DbCredential(connString, resource.Lease.ExpiresAt);
-    }
-
-    private static string BuildConnectionString(ResolvedResourceDescriptor r)
-    {
-        var t = r.Topology;
-        var c = r.Auth.Credentials;
-        return $"Host={t.Endpoint};Port={t.Port};Database={t.Database};" +
-               $"Username={c.GetValueOrDefault("username", "")};Password={c.GetValueOrDefault("password", "")}";
+        return new DbCredential(resource);
     }
 }
 

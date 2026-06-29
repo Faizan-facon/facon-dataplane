@@ -11,7 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 // ── JSON ─────────────────────────────────────────────────────────────────
 builder.Services.AddControllers(o =>
     {
-        // Register the feature gate as a global action filter
+        // Register global action filters
+        o.Filters.Add<PermissionFilter>();
         o.Filters.Add<FeatureGateFilter>();
     })
     .AddJsonOptions(o =>
@@ -46,7 +47,8 @@ builder.Services.AddSingleton<TenantMigrationService>();
 // ── Tenant connection pool (per-tenant DB connections) ───────────────────
 builder.Services.AddSingleton<TenantConnectionPool>();
 
-// ── Feature gate filter ──────────────────────────────────────────────────
+// ── Authorization filters ────────────────────────────────────────────────
+builder.Services.AddScoped<PermissionFilter>();
 builder.Services.AddScoped<FeatureGateFilter>();
 
 // ── Middleware (order matters) ───────────────────────────────────────────
@@ -54,6 +56,7 @@ builder.Services.AddScoped<TenantResolutionMiddleware>();
 builder.Services.AddScoped<SubscriptionEnforcementMiddleware>();
 builder.Services.AddScoped<TenantLoggingMiddleware>();
 builder.Services.AddScoped<DbConnectionMiddleware>();
+builder.Services.AddScoped<PermissionMiddleware>();
 
 // ── Memory cache (used by TenantResolutionMiddleware) ────────────────────
 builder.Services.AddMemoryCache();
@@ -65,7 +68,7 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
 var app = builder.Build();
 
 // ── Pipeline ─────────────────────────────────────────────────────────────
-// Order: CORS → Auth → Tenant Resolution → Subscription Check → Logging → DB Connection
+// Order: CORS → Auth → Tenant Resolution → Subscription Check → Logging → DB Connection → Permissions
 app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -73,6 +76,7 @@ app.UseMiddleware<TenantResolutionMiddleware>();       // 1. Resolve tenant from
 app.UseMiddleware<SubscriptionEnforcementMiddleware>(); // 2. Block suspended/cancelled/past-due
 app.UseMiddleware<TenantLoggingMiddleware>();           // 3. Enrich logs with TenantId/UserId
 app.UseMiddleware<DbConnectionMiddleware>();            // 4. Open tenant-scoped DB connection
+app.UseMiddleware<PermissionMiddleware>();              // 5. Resolve effective permissions
 app.MapControllers();
 
 app.Run();

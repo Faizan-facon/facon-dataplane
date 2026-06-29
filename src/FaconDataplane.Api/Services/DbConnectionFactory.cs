@@ -48,6 +48,16 @@ public static class DbConnectionFactory
         };
     }
 
+    /// <summary>
+    /// Returns "postgresql", "mssql", or "unknown" for a given connection.
+    /// </summary>
+    public static string DetectEngine(DbConnection conn) => conn switch
+    {
+        NpgsqlConnection => "postgresql",
+        SqlConnection => "mssql",
+        _ => "unknown"
+    };
+
     // ── Engine-specific builders ───────────────────────────────────────
 
     private static string BuildNpgsqlString(ResolvedResourceDescriptor r)

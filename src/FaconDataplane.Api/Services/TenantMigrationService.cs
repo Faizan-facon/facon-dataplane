@@ -99,6 +99,31 @@ public sealed class TenantMigrationService
         }
     }
 
+    // ── Public Helpers ──────────────────────────────────────────────────
+
+    /// <summary>
+    /// Refresh the effective permissions cache after role/permission changes.
+    /// Must be called after INSERT/UPDATE/DELETE on roles, role_permissions,
+    /// member_roles, or member_permissions.
+    /// </summary>
+    public static async Task RefreshEffectivePermissionsAsync(DbConnection conn, CancellationToken ct = default)
+    {
+        await using var cmd = conn.CreateCommand();
+
+        if (conn is Microsoft.Data.SqlClient.SqlConnection)
+        {
+            // MSSQL: recompile the stored procedure (it queries live tables)
+            cmd.CommandText = "EXEC sp_recompile 'sp_GetEffectivePermissions'";
+        }
+        else
+        {
+            // PostgreSQL: refresh the materialized view
+            cmd.CommandText = "REFRESH MATERIALIZED VIEW CONCURRENTLY tenant_effective_permissions";
+        }
+
+        await cmd.ExecuteNonQueryAsync(ct);
+    }
+
     // ── Internals ───────────────────────────────────────────────────────
 
     private static async Task EnsureMigrationTableAsync(DbConnection conn, CancellationToken ct)

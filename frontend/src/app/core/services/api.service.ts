@@ -84,5 +84,6 @@ export interface TenantSummary {
   name: string;
   slug: string;
   status: string;
+  planKey?: string;
   subscriptionStatus?: string;
 }

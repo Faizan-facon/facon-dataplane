@@ -9,6 +9,7 @@ export interface TenantContext {
   organizationName: string;
   tenantStatus: string;
   subscriptionStatus: string;
+  planKey: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -38,6 +39,7 @@ export class TenantService {
         organizationName: profile.organizationName,
         tenantStatus: active.status,
         subscriptionStatus: active.subscriptionStatus ?? 'Unknown',
+        planKey: active.planKey ?? 'Trial',
       };
       this._context.set(ctx);
       return ctx;

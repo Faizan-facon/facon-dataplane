@@ -26,10 +26,9 @@ export class ShellComponent implements OnInit {
       console.warn('Tenant resolution failed');
       return;
     }
-    // Derive feature set from tenant profile (plan key from context)
-    // The plan key comes from the control plane entitlements response.
-    // For now, infer from first available tenant context.
-    this.fg.setPlan('pro'); // Replace with actual plan key from tenant context
+    // Derive feature set from tenant's actual plan key
+    const planKey = ctx.planKey;
+    this.fg.setPlan(planKey);
   }
 
   get username(): string {

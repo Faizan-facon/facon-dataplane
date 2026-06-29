@@ -29,6 +29,9 @@
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
           "configurations": {
             "production": { "buildTarget": "facon-dataplane:build:production" },
             "development": { "buildTarget": "facon-dataplane:build:development" }

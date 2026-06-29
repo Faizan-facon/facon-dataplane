@@ -57,7 +57,9 @@ public sealed class TenantResolutionMiddleware
 
         context.Items["TenantId"] = tenantCtx!.TenantId;
         context.Items["TenantSlug"] = tenantCtx.TenantSlug;
+        context.Items["TenantName"] = tenantCtx.TenantName;
         context.Items["OrganizationId"] = tenantCtx.OrganizationId;
+        context.Items["OrganizationName"] = tenantCtx.OrganizationName;
         context.Items["TenantStatus"] = tenantCtx.TenantStatus;
         context.Items["SubscriptionStatus"] = tenantCtx.SubscriptionStatus;
         context.Items["PlanKey"] = tenantCtx.PlanKey;
